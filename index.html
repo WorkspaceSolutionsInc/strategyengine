@@ -565,9 +565,40 @@ function makeSegments(){
   ];
 }
 
-var SK='ws_strat_v13';
-function load(){try{var r=localStorage.getItem(SK);return r?JSON.parse(r):null;}catch(e){return null;}}
+var SK='ws_strat_v14';
+function load(){try{var r=localStorage.getItem(SK);if(!r){var old=localStorage.getItem('ws_strat_v13');if(old){var od=JSON.parse(old);od.engMilestones=null;od.engDeliverables=null;od.discoveryLog=null;return od;}}return r?JSON.parse(r):null;}catch(e){return null;}}
 function save(d){try{localStorage.setItem(SK,JSON.stringify(d));}catch(e){}}
+
+/* ─── ENGAGEMENT DATA ─── */
+var ENG_MILESTONES=[
+  {id:'m1',l:'Sign-Off & Kick-Off',week:1,color:'#2563eb'},
+  {id:'m2',l:'Customer Definition + Plan Review',week:2,color:'#7c3aed'},
+  {id:'m3',l:'Month 1 Report',week:4,color:'#0891b2'},
+  {id:'m4',l:'Pricing Framework Delivery',week:5,color:'#059669'},
+  {id:'m5',l:'Playbook Draft Review',week:7,color:'#ea580c'},
+  {id:'m6',l:'Engagement Close & Handoff',week:8,color:'#dc2626'}
+];
+var ENG_DELIVERABLES=[
+  /* ── DELIVERABLES (one-time outputs with a due week) ── */
+  {id:'d1',kind:'deliverable',track:'methodology',l:'Customer Definition',desc:'Who we serve, what they need, how they buy. Written profiles for each target segment.',week:2,milestone:'m2',feedsInto:['target','criteria']},
+  {id:'d2',kind:'deliverable',track:'methodology',l:'Service Expansion Model',desc:'How to move from one-time project delivery to multi-service relationships. Laddering framework.',week:4,milestone:'m3',feedsInto:['frameworks','forecasting']},
+  {id:'d3',kind:'deliverable',track:'methodology',l:'Margin & Pricing Framework',desc:'Unit economics, pricing tiers, and margin targets for each service package.',week:5,milestone:'m4',feedsInto:['budget','forecasting']},
+  {id:'d4',kind:'deliverable',track:'methodology',l:'Sales Playbook',desc:'Conversation frameworks, objection handling, and qualification criteria for multi-service pitches.',week:7,milestone:'m5',feedsInto:['plan']},
+  {id:'d5',kind:'deliverable',track:'methodology',l:'Positioning Narrative',desc:'How Work_Space articulates its value proposition vs competitors. Messaging by segment.',week:2,milestone:'m2',feedsInto:['selfassess','valuemap']},
+  {id:'d6',kind:'deliverable',track:'pitching',l:'Internal Kick-Off',desc:'Align POI team on engagement goals, Work_Space value proposition, and weekly cadence.',week:1,milestone:'m1',feedsInto:[]},
+  {id:'d10',kind:'deliverable',track:'pitching',l:'Documented Findings Report',desc:'Synthesis of all client conversations, pitch sit-ins, and working sessions into actionable insights.',week:8,milestone:'m6',feedsInto:['frameworks','selfassess','valuemap']},
+  {id:'d12',kind:'deliverable',track:'partnership',l:'Operating Economics Model',desc:'Real cost structure for NewCo — what it costs to deliver each service line at scale.',week:4,milestone:'m3',feedsInto:['budget','forecasting']},
+  {id:'d13',kind:'deliverable',track:'partnership',l:'Structural Options Analysis',desc:'Legal, equity, and operational options for how the partnership formalizes.',week:6,milestone:'m6',feedsInto:[]},
+  {id:'d15',kind:'deliverable',track:'partnership',l:'Synthesis of Findings',desc:'End-of-engagement report connecting all workstreams into a coherent strategic recommendation.',week:8,milestone:'m6',feedsInto:['frameworks','plan','valuemap']},
+  /* ── RECURRING MEETINGS (span multiple weeks) ── */
+  {id:'d7',kind:'meeting',track:'pitching',l:'Weekly Working Sessions',desc:'60-min sessions covering active opportunities, competitive positioning, and methodology refinement. Every week throughout the engagement.',week:1,weekEnd:8,milestone:'m6',feedsInto:['competition','criteria'],cadence:'Weekly'},
+  {id:'d8',kind:'meeting',track:'pitching',l:'Pitch Sit-Ins',desc:'Andrew joins POI client meetings to observe, coach, and capture real buyer language and objections. Scheduled as opportunities arise.',week:2,weekEnd:8,milestone:'m6',feedsInto:['competition','criteria','valuemap'],cadence:'As scheduled'},
+  {id:'d9',kind:'meeting',track:'pitching',l:'Client Conversations (4-6)',desc:'Direct interviews with target buyers — validate assumptions, surface unmet needs, test messaging. Spread across the engagement.',week:2,weekEnd:7,milestone:'m6',feedsInto:['target','criteria','competition'],cadence:'1-2 per week'},
+  {id:'d11',kind:'meeting',track:'partnership',l:'Bi-Weekly Partnership Sessions',desc:'Strategic check-ins with Andrew, Jonas, and Chris on partnership structure, economics, and open items.',week:1,weekEnd:8,milestone:'m6',feedsInto:[],cadence:'Bi-weekly'},
+  {id:'d14',kind:'meeting',track:'partnership',l:'Open Items Log',desc:'Living document tracking every unresolved question, decision, and dependency. Updated each session.',week:1,weekEnd:8,milestone:'m6',feedsInto:[],cadence:'Ongoing'}
+];
+var ENG_TRACKS={methodology:{l:'Methodology',c:'#2563eb',bg:'#eff6ff'},pitching:{l:'Pitching & BD',c:'#7c3aed',bg:'#faf5ff'},partnership:{l:'Future Partnership',c:'#059669',bg:'#f0fdf4'}};
+var FEED_LABELS={target:'Target Market',criteria:'Criteria',competition:'Competition',selfassess:'Self-Assessment',valuemap:'Value Map',frameworks:'Frameworks',forecasting:'Forecasting',plan:'Plan',budget:'Budget'};
 
 /* ─── HELPERS ─── */
 function fwLabel(fw){
@@ -630,15 +661,18 @@ function App(){
   var _comps=useState(s0&&s0.competitors?s0.competitors:makeCompetitors()),competitors=_comps[0],setCompetitors=_comps[1];
   var _compScores=useState(s0&&s0.compScores?s0.compScores:{}),compScores=_compScores[0],setCompScores=_compScores[1];
   var _selfScores=useState(s0&&s0.selfScores?s0.selfScores:COMP_ADJ.workspace||COMP_CRIT_SCORES.A),selfScores=_selfScores[0],setSelfScores=_selfScores[1];
+  /* Engagement state */
+  var _engDel=useState(s0&&s0.engDeliverables?s0.engDeliverables:{}),engDeliverables=_engDel[0],setEngDeliverables=_engDel[1];
+  var _discLog=useState(s0&&s0.discoveryLog?s0.discoveryLog:[]),discoveryLog=_discLog[0],setDiscoveryLog=_discLog[1];
   var _page=useState('home'),page=_page[0],setPage=_page[1];
   var _fwTab=useState('pestel'),fwTab=_fwTab[0],setFwTab=_fwTab[1];
   var _editId=useState(null),editId=_editId[0],setEditId=_editId[1];
 
   var hist=useRef([]);
-  function snap(){hist.current.push(JSON.stringify({items:items,ps:ps,cands:cands,profiles:profiles,segments:segments,competitors:competitors,compScores:compScores,selfScores:selfScores}));if(hist.current.length>40)hist.current.shift();}
-  function undo(){if(!hist.current.length)return;var p=JSON.parse(hist.current.pop());setItems(p.items);setPS(p.ps);setCands(p.cands||[]);if(p.profiles)setProfiles(p.profiles);if(p.segments)setSegments(p.segments);if(p.competitors)setCompetitors(p.competitors);if(p.compScores)setCompScores(p.compScores);if(p.selfScores)setSelfScores(p.selfScores);}
+  function snap(){hist.current.push(JSON.stringify({items:items,ps:ps,cands:cands,profiles:profiles,segments:segments,competitors:competitors,compScores:compScores,selfScores:selfScores,engDeliverables:engDeliverables,discoveryLog:discoveryLog}));if(hist.current.length>40)hist.current.shift();}
+  function undo(){if(!hist.current.length)return;var p=JSON.parse(hist.current.pop());setItems(p.items);setPS(p.ps);setCands(p.cands||[]);if(p.profiles)setProfiles(p.profiles);if(p.segments)setSegments(p.segments);if(p.competitors)setCompetitors(p.competitors);if(p.compScores)setCompScores(p.compScores);if(p.selfScores)setSelfScores(p.selfScores);if(p.engDeliverables)setEngDeliverables(p.engDeliverables);if(p.discoveryLog)setDiscoveryLog(p.discoveryLog);}
 
-  useEffect(function(){var t=setTimeout(function(){save({items:items,ps:ps,cands:cands,profiles:profiles,segments:segments,competitors:competitors,compScores:compScores,selfScores:selfScores});},400);return function(){clearTimeout(t);};},[items,ps,cands,profiles,segments,competitors,compScores,selfScores]);
+  useEffect(function(){var t=setTimeout(function(){save({items:items,ps:ps,cands:cands,profiles:profiles,segments:segments,competitors:competitors,compScores:compScores,selfScores:selfScores,engDeliverables:engDeliverables,discoveryLog:discoveryLog});},400);return function(){clearTimeout(t);};},[items,ps,cands,profiles,segments,competitors,compScores,selfScores,engDeliverables,discoveryLog]);
   useEffect(function(){function fn(e){if((e.metaKey||e.ctrlKey)&&e.key==='z'){e.preventDefault();undo();}}window.addEventListener('keydown',fn);return function(){window.removeEventListener('keydown',fn);};},[]);
 
   function upd(id,ch){snap();setItems(function(p){return p.map(function(i){return i.id===id?Object.assign({},i,ch):i;});});}
@@ -649,8 +683,11 @@ function App(){
   function remCand(id){snap();setCands(function(p){return p.filter(function(x){return x!==id;});});}
 
   var editItem=editId?items.find(function(i){return i.id===editId;}):null;
-  var pages=[
-    {id:'home',l:'Home'},
+  var activePages=[
+    {id:'engagement',l:'Workplan'},
+    {id:'discovery',l:'Discovery'}
+  ];
+  var stratPages=[
     {id:'frameworks',l:'Frameworks'},
     {id:'target',l:'Target Market'},
     {id:'criteria',l:'Criteria'},
@@ -661,7 +698,8 @@ function App(){
     {id:'plan',l:'Plan'},
     {id:'budget',l:'Budget'}
   ];
-  var widePages=['home','target','forecasting','competition','valuemap','selfassess','plan','budget'];
+  var pages=[{id:'home',l:'Home'}].concat(activePages).concat(stratPages);
+  var widePages=['home','engagement','discovery','target','forecasting','competition','valuemap','selfassess','plan','budget'];
 
   return h('div',{style:{height:'100vh',display:'flex',flexDirection:'column'}},
     h('header',{style:{height:48,borderBottom:'1px solid #e5e5e5',display:'flex',alignItems:'center',padding:'0 16px',background:'#fff',flexShrink:0,zIndex:20,gap:12}},
@@ -670,12 +708,25 @@ function App(){
         h('span',{style:{fontSize:13,fontWeight:700}},'Strategy Engine')
       ),
       h('div',{style:{height:24,width:1,background:'#e5e5e5',flexShrink:0}}),
-      h('div',{style:{display:'flex',gap:1,overflow:'auto'}},
-        pages.filter(function(pg){return pg.id!=='home';}).map(function(pg){
-          var active=page===pg.id;
+      h('div',{style:{display:'flex',gap:0,overflow:'auto',alignItems:'center'}},
+        /* Active group label */
+        h('span',{style:{fontSize:8,fontWeight:700,color:'#2563eb',textTransform:'uppercase',letterSpacing:'.06em',padding:'0 6px 0 2px',flexShrink:0}},'Active'),
+        activePages.map(function(pg){
+          var act=page===pg.id;
           return h('button',{key:pg.id,onClick:function(){setPage(pg.id);},
             style:{padding:'6px 10px',borderRadius:6,border:'none',fontSize:9.5,fontWeight:600,whiteSpace:'nowrap',
-              background:active?'#111':'transparent',color:active?'#fff':'#666',
+              background:act?'#2563eb':'transparent',color:act?'#fff':'#2563eb',
+              cursor:'pointer'}},pg.l);
+        }),
+        /* Divider */
+        h('div',{style:{width:1,height:18,background:'#e0e0e0',margin:'0 6px',flexShrink:0}}),
+        /* Strategy group label */
+        h('span',{style:{fontSize:8,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.06em',padding:'0 6px 0 2px',flexShrink:0}},'Strategy'),
+        stratPages.map(function(pg){
+          var act=page===pg.id;
+          return h('button',{key:pg.id,onClick:function(){setPage(pg.id);},
+            style:{padding:'6px 10px',borderRadius:6,border:'none',fontSize:9.5,fontWeight:600,whiteSpace:'nowrap',
+              background:act?'#111':'transparent',color:act?'#fff':'#666',
               cursor:'pointer'}},pg.l);
         })
       ),
@@ -684,7 +735,9 @@ function App(){
     ),
     h('div',{style:{flex:1,overflow:'auto',background:'#f8f9fa'}},
       h('div',{style:{maxWidth:widePages.indexOf(page)>=0?1060:960,margin:'0 auto',padding:'24px 28px 80px',transition:'max-width .2s'}},
-        page==='home'&&h(HomePage,{setPage:setPage}),
+        page==='home'&&h(HomePage,{setPage:setPage,engDeliverables:engDeliverables,discoveryLog:discoveryLog}),
+        page==='engagement'&&h(EngagementPage,{engDeliverables:engDeliverables,setEngDeliverables:setEngDeliverables,snap:snap,setPage:setPage}),
+        page==='discovery'&&h(DiscoveryPage,{discoveryLog:discoveryLog,setDiscoveryLog:setDiscoveryLog,snap:snap,setPage:setPage}),
         page==='frameworks'&&h(FrameworksPage,{items:items,ps:ps,setPS:setPS,cands:cands,fwTab:fwTab,setFwTab:setFwTab,setEditId:setEditId,add:add,addCand:addCand,remCand:remCand}),
         page==='target'&&h(TargetMarketPage,{segments:segments,setSegments:setSegments,snap:snap,items:items,setEditId:setEditId,profiles:profiles,setProfiles:setProfiles}),
         page==='criteria'&&h(CriteriaPage,{profiles:profiles,setProfiles:setProfiles,snap:snap,items:items,setEditId:setEditId,segments:segments}),
@@ -701,11 +754,564 @@ function App(){
 }
 
 /* ═══════════════════════════════════════════════
+   WORKPLAN — POI ENGAGEMENT TRACKER
+   ═══════════════════════════════════════════════ */
+function EngagementPage(props){
+  var engDeliverables=props.engDeliverables,setEngDeliverables=props.setEngDeliverables,snap=props.snap,setPage=props.setPage;
+  var _selWeek=useState(null),selWeek=_selWeek[0],setSelWeek=_selWeek[1];
+  var _expanded=useState(null),expanded=_expanded[0],setExpanded=_expanded[1];
+  var _selMilestone=useState(null),selMilestone=_selMilestone[0],setSelMilestone=_selMilestone[1];
+  var _editingId=useState(null),editingId=_editingId[0],setEditingId=_editingId[1];
+  var _editForm=useState({}),editForm=_editForm[0],setEditForm=_editForm[1];
+  var _behindExpanded=useState(false),behindExpanded=_behindExpanded[0],setBehindExpanded=_behindExpanded[1];
+
+  var startDate=new Date(2026,4,12);
+  var endDate=new Date(2026,6,10);
+  var today=new Date();
+  var totalDays=(endDate-startDate)/(1000*60*60*24);
+  var elapsedDays=Math.max(0,Math.min(totalDays,(today-startDate)/(1000*60*60*24)));
+  var pctTime=Math.round((elapsedDays/totalDays)*100);
+  var currentWeek=Math.min(8,Math.max(1,Math.ceil(elapsedDays/7)));
+
+  function getStatus(did){return engDeliverables[did]||'not_started';}
+  function setStatus(did,st){snap();setEngDeliverables(function(p){var n={};for(var k in p)n[k]=p[k];n[did]=st;return n;});}
+  var SO=[{id:'not_started',l:'Not Started',c:'#94a3b8',bg:'#f8fafc',icon:'○'},{id:'in_progress',l:'In Progress',c:'#f59e0b',bg:'#fffbeb',icon:'◐'},{id:'complete',l:'Complete',c:'#16a34a',bg:'#f0fdf4',icon:'✓'},{id:'blocked',l:'Blocked',c:'#dc2626',bg:'#fef2f2',icon:'✕'}];
+  function soFind(id){return SO.find(function(s){return s.id===id;})||SO[0];}
+
+  /* Split deliverables from meetings */
+  var deliverables=ENG_DELIVERABLES.filter(function(d){return d.kind==='deliverable';});
+  var meetings=ENG_DELIVERABLES.filter(function(d){return d.kind==='meeting';});
+  var totalDel=deliverables.length;
+  var completeDel=deliverables.filter(function(d){return getStatus(d.id)==='complete';}).length;
+  var inProgressDel=deliverables.filter(function(d){return getStatus(d.id)==='in_progress';}).length;
+  var blockedDel=deliverables.filter(function(d){return getStatus(d.id)==='blocked';}).length;
+  var notStartedDel=totalDel-completeDel-inProgressDel-blockedDel;
+
+  /* Behind schedule = deliverables only (not meetings) past their due week and not complete */
+  var overdue=deliverables.filter(function(d){return d.week<currentWeek&&getStatus(d.id)!=='complete';});
+
+  /* Items in a given week: deliverables due that week + meetings active that week */
+  function itemsForWeek(w){
+    var wDels=deliverables.filter(function(d){return d.week===w;});
+    var wMeets=meetings.filter(function(d){return w>=(d.week||1)&&w<=(d.weekEnd||8);});
+    return {deliverables:wDels,meetings:wMeets,all:wDels.concat(wMeets)};
+  }
+
+  function weekLabel(w){
+    var s=new Date(startDate.getTime()+(w-1)*7*86400000);
+    var e=new Date(s.getTime()+6*86400000);
+    var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return mo[s.getMonth()]+' '+s.getDate()+' – '+mo[e.getMonth()]+' '+e.getDate();
+  }
+
+  /* ── STATUS PILL ── */
+  function StatusPill(sp){
+    var st=soFind(sp.status);
+    return h('select',{value:sp.status,onChange:function(e){sp.onChange(e.target.value);},
+      style:{fontSize:10,fontWeight:600,color:st.c,background:st.bg,border:'1px solid '+st.c+'33',borderRadius:6,padding:'3px 22px 3px 8px',cursor:'pointer'}},
+      SO.map(function(o){return h('option',{key:o.id,value:o.id},o.l);}));
+  }
+
+  /* ── EDIT FORM for a deliverable/meeting ── */
+  function startEdit(d){
+    setEditingId(d.id);
+    setEditForm({l:d.l,desc:d.desc,week:d.week,weekEnd:d.weekEnd||null});
+  }
+  function saveEdit(d){
+    /* We store edits in engDeliverables keyed as _edit_<id> */
+    snap();
+    setEngDeliverables(function(p){
+      var n={};for(var k in p)n[k]=p[k];
+      n['_edit_'+d.id]=JSON.stringify(editForm);
+      return n;
+    });
+    setEditingId(null);
+  }
+  function getEdited(d){
+    var raw=engDeliverables['_edit_'+d.id];
+    if(!raw)return d;
+    try{var e=JSON.parse(raw);return {l:e.l||d.l,desc:e.desc||d.desc,week:e.week||d.week,weekEnd:e.weekEnd||d.weekEnd,id:d.id,kind:d.kind,track:d.track,milestone:d.milestone,feedsInto:d.feedsInto,cadence:d.cadence};}catch(x){return d;}
+  }
+
+  /* ── DELIVERABLE CARD (expandable + editable) ── */
+  function DelCard(dc){
+    var raw=dc.d;var d=getEdited(raw);var tr=ENG_TRACKS[d.track];var st=getStatus(d.id);var so=soFind(st);
+    var isOpen=expanded===d.id;
+    var isMeeting=d.kind==='meeting';
+    var isPastDue=!isMeeting&&d.week<currentWeek&&st!=='complete';
+    var isEditing=editingId===d.id;
+    return h('div',{style:{background:'#fff',borderRadius:10,border:'1px solid '+(isPastDue?'#fecaca':'#eee'),marginBottom:8,overflow:'hidden',
+      boxShadow:isOpen?'0 2px 12px rgba(0,0,0,.06)':'none'}},
+      /* Header row */
+      h('div',{onClick:function(){if(!isEditing){setExpanded(isOpen?null:d.id);}},
+        style:{padding:'12px 16px',display:'flex',alignItems:'center',gap:10,cursor:isEditing?'default':'pointer',
+          borderLeft:'4px solid '+(isMeeting?'#94a3b8':tr.c)}},
+        h('div',{style:{width:24,height:24,borderRadius:6,background:isMeeting?'#f1f5f9':so.bg,border:'1px solid '+(isMeeting?'#ddd':so.c+'44'),
+          display:'flex',alignItems:'center',justifyContent:'center',fontSize:isMeeting?10:12,color:isMeeting?'#64748b':so.c,fontWeight:700,flexShrink:0}},isMeeting?'📅':so.icon),
+        h('div',{style:{flex:1,minWidth:0}},
+          h('div',{style:{fontSize:13,fontWeight:600,color:'#222',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},d.l),
+          h('div',{style:{display:'flex',gap:6,alignItems:'center',marginTop:2,flexWrap:'wrap'}},
+            h('span',{style:{fontSize:9,fontWeight:600,color:isMeeting?'#64748b':tr.c,background:isMeeting?'#f1f5f9':tr.bg,padding:'1px 6px',borderRadius:4}},isMeeting?'Meeting':tr.l),
+            isMeeting&&d.cadence&&h('span',{style:{fontSize:9,color:'#888'}},d.cadence),
+            !isMeeting&&h('span',{style:{fontSize:9,color:'#888'}},'Due Wk '+d.week),
+            isPastDue&&h('span',{style:{fontSize:9,fontWeight:700,color:'#dc2626',background:'#fef2f2',padding:'1px 6px',borderRadius:4}},'Behind'))),
+        !isMeeting&&h('div',{onClick:function(e){e.stopPropagation();},style:{flexShrink:0}},
+          h(StatusPill,{status:st,onChange:function(v){setStatus(d.id,v);}})),
+        h('span',{style:{fontSize:12,color:'#bbb',flexShrink:0,transform:isOpen?'rotate(180deg)':'',transition:'transform .15s'}},'▾')
+      ),
+      /* Expanded detail */
+      isOpen&&!isEditing&&h('div',{style:{padding:'0 16px 14px',borderTop:'1px solid #f0f0f0',marginLeft:4},className:'fade'},
+        h('div',{style:{padding:'12px 0 8px',fontSize:12,color:'#555',lineHeight:1.6}},d.desc),
+        h('div',{style:{display:'flex',gap:16,flexWrap:'wrap',marginBottom:8}},
+          !isMeeting&&h('div',null,
+            h('span',{style:{fontSize:9,fontWeight:600,color:'#999',textTransform:'uppercase'}},'Milestone'),
+            h('div',{style:{fontSize:11,fontWeight:600,color:'#444',marginTop:2}},(ENG_MILESTONES.find(function(m){return m.id===d.milestone;})||{l:'—'}).l)),
+          h('div',null,
+            h('span',{style:{fontSize:9,fontWeight:600,color:'#999',textTransform:'uppercase'}},isMeeting?'Active':'Due'),
+            h('div',{style:{fontSize:11,fontWeight:600,color:'#444',marginTop:2}},isMeeting?('Weeks '+d.week+'–'+(d.weekEnd||8)):('Week '+d.week+' · '+weekLabel(d.week)))),
+          isMeeting&&h('div',null,
+            h('span',{style:{fontSize:9,fontWeight:600,color:'#999',textTransform:'uppercase'}},'Cadence'),
+            h('div',{style:{fontSize:11,fontWeight:600,color:'#444',marginTop:2}},d.cadence||'—'))),
+        d.feedsInto&&d.feedsInto.length>0&&h('div',{style:{marginTop:4,marginBottom:8}},
+          h('span',{style:{fontSize:9,fontWeight:600,color:'#999',textTransform:'uppercase'}},'Feeds Into'),
+          h('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginTop:4}},
+            d.feedsInto.map(function(f){return h('span',{key:f,onClick:function(){setPage(f);},
+              style:{fontSize:10,fontWeight:600,color:'#2563eb',background:'#eff6ff',padding:'3px 8px',borderRadius:5,cursor:'pointer'}},'→ '+(FEED_LABELS[f]||f));}))),
+        h('button',{onClick:function(){startEdit(raw);},style:{fontSize:10,fontWeight:600,color:'#2563eb',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:6,padding:'4px 10px',cursor:'pointer',marginTop:4}},'✎ Edit')
+      ),
+      /* Inline edit form */
+      isOpen&&isEditing&&h('div',{style:{padding:'12px 16px 14px',borderTop:'1px solid #f0f0f0'},className:'fade'},
+        h('div',{style:{marginBottom:8}},
+          h('label',{style:{fontSize:9,fontWeight:600,color:'#999',textTransform:'uppercase',display:'block',marginBottom:3}},'Title'),
+          h('input',{value:editForm.l,onChange:function(e){setEditForm(function(p){return Object.assign({},p,{l:e.target.value});});},
+            style:{width:'100%',padding:'6px 10px',borderRadius:6,border:'1px solid #ddd',fontSize:12}})),
+        h('div',{style:{marginBottom:8}},
+          h('label',{style:{fontSize:9,fontWeight:600,color:'#999',textTransform:'uppercase',display:'block',marginBottom:3}},'Description'),
+          h('textarea',{value:editForm.desc,onChange:function(e){setEditForm(function(p){return Object.assign({},p,{desc:e.target.value});});},rows:3,
+            style:{width:'100%',padding:'6px 10px',borderRadius:6,border:'1px solid #ddd',fontSize:12,resize:'vertical'}})),
+        h('div',{style:{display:'flex',gap:10,marginBottom:10}},
+          h('div',null,
+            h('label',{style:{fontSize:9,fontWeight:600,color:'#999',textTransform:'uppercase',display:'block',marginBottom:3}},isMeeting?'Start Week':'Due Week'),
+            h('select',{value:editForm.week,onChange:function(e){setEditForm(function(p){return Object.assign({},p,{week:Number(e.target.value)});});},
+              style:{padding:'6px 26px 6px 10px',borderRadius:6,border:'1px solid #ddd',fontSize:12}},
+              [1,2,3,4,5,6,7,8].map(function(w){return h('option',{key:w,value:w},'Week '+w);}))),
+          isMeeting&&h('div',null,
+            h('label',{style:{fontSize:9,fontWeight:600,color:'#999',textTransform:'uppercase',display:'block',marginBottom:3}},'End Week'),
+            h('select',{value:editForm.weekEnd||8,onChange:function(e){setEditForm(function(p){return Object.assign({},p,{weekEnd:Number(e.target.value)});});},
+              style:{padding:'6px 26px 6px 10px',borderRadius:6,border:'1px solid #ddd',fontSize:12}},
+              [1,2,3,4,5,6,7,8].map(function(w){return h('option',{key:w,value:w},'Week '+w);})))),
+        h('div',{style:{display:'flex',gap:6}},
+          h('button',{onClick:function(){saveEdit(raw);},style:{fontSize:11,fontWeight:600,color:'#fff',background:'#2563eb',border:'none',borderRadius:6,padding:'6px 14px',cursor:'pointer'}},'Save'),
+          h('button',{onClick:function(){setEditingId(null);},style:{fontSize:11,fontWeight:600,color:'#666',background:'#f1f5f9',border:'1px solid #e5e5e5',borderRadius:6,padding:'6px 14px',cursor:'pointer'}},'Cancel'))
+      )
+    );
+  }
+
+  /* ── TRACK PROGRESS CARD ── */
+  function TrackBar(tb){
+    var tr=ENG_TRACKS[tb.tk];
+    var dels=deliverables.filter(function(d){return d.track===tb.tk;});
+    var comp=dels.filter(function(d){return getStatus(d.id)==='complete';}).length;
+    var ip=dels.filter(function(d){return getStatus(d.id)==='in_progress';}).length;
+    var od=dels.filter(function(d){return d.week<currentWeek&&getStatus(d.id)!=='complete';}).length;
+    var pct=dels.length?Math.round(comp/dels.length*100):0;
+    return h('div',{style:{flex:1,background:'#fff',borderRadius:10,border:'1px solid #eee',padding:'14px 16px',borderTop:'3px solid '+tr.c}},
+      h('div',{style:{fontSize:12,fontWeight:700,color:'#222',marginBottom:2}},tr.l),
+      h('div',{style:{fontSize:22,fontWeight:800,color:tr.c,marginBottom:6}},pct+'%'),
+      h('div',{style:{height:6,background:'#f1f5f9',borderRadius:3,overflow:'hidden',display:'flex',marginBottom:8}},
+        comp>0&&h('div',{style:{width:(comp/dels.length*100)+'%',background:tr.c}}),
+        ip>0&&h('div',{style:{width:(ip/dels.length*100)+'%',background:tr.c+'55'}})),
+      h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:9,color:'#888'}},
+        h('span',null,comp+'/'+dels.length+' done'),
+        od>0?h('span',{style:{color:'#dc2626',fontWeight:600}},od+' behind'):h('span',null,ip+' active')));
+  }
+
+  /* ── MILESTONE CARD (expandable) ── */
+  function MilestoneCard(mc){
+    var m=mc.m;
+    var mDels=deliverables.filter(function(d){return d.milestone===m.id;});
+    var allDone=mDels.every(function(d){return getStatus(d.id)==='complete';});
+    var anyIP=mDels.some(function(d){return getStatus(d.id)==='in_progress';});
+    var isPast=m.week<currentWeek;
+    var anyBehind=isPast&&!allDone;
+    var isOpen=selMilestone===m.id;
+    return h('div',{style:{background:'#fff',borderRadius:10,border:'1px solid '+(anyBehind?'#fecaca':'#eee'),marginBottom:8,overflow:'hidden',
+      boxShadow:isOpen?'0 2px 12px rgba(0,0,0,.06)':'none'}},
+      h('div',{onClick:function(){setSelMilestone(isOpen?null:m.id);},
+        style:{padding:'12px 16px',display:'flex',alignItems:'center',gap:12,cursor:'pointer'}},
+        h('div',{style:{width:32,height:32,borderRadius:'50%',
+          background:allDone?'#16a34a':anyBehind?'#dc2626':anyIP?'#f59e0b':m.color+'15',
+          border:'2px solid '+(allDone?'#16a34a':anyBehind?'#dc2626':anyIP?'#f59e0b':m.color),
+          display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,
+          color:allDone||anyIP||anyBehind?'#fff':m.color,flexShrink:0}},allDone?'✓':('W'+m.week)),
+        h('div',{style:{flex:1}},
+          h('div',{style:{fontSize:13,fontWeight:700,color:'#222'}},m.l),
+          h('div',{style:{fontSize:10,color:'#888'}},'Week '+m.week+' · '+weekLabel(m.week)+' · '+mDels.length+' deliverable'+(mDels.length!==1?'s':''))),
+        h('div',{style:{fontSize:11,fontWeight:600,color:allDone?'#16a34a':anyBehind?'#dc2626':anyIP?'#f59e0b':'#94a3b8'}},
+          allDone?'Complete':anyBehind?'Behind':anyIP?'In Progress':'Pending'),
+        h('span',{style:{fontSize:12,color:'#bbb',transform:isOpen?'rotate(180deg)':'',transition:'transform .15s'}},'▾')),
+      isOpen&&h('div',{style:{padding:'0 16px 12px',borderTop:'1px solid #f0f0f0'},className:'fade'},
+        mDels.map(function(d){return h(DelCard,{key:d.id,d:d});}))
+    );
+  }
+
+  /* ── WEEK CALENDAR CARD ── */
+  function WeekCard(wc){
+    var w=wc.w;
+    var wi=itemsForWeek(w);
+    var ms=ENG_MILESTONES.filter(function(m){return m.week===w;});
+    var isCurrent=w===currentWeek;var isPast=w<currentWeek;var isSel=selWeek===w;
+    var delsComplete=wi.deliverables.every(function(d){return getStatus(d.id)==='complete';});
+    var anyBehind=isPast&&wi.deliverables.length>0&&!delsComplete;
+    var bg=isSel?'#fff':isCurrent?'#eff6ff':isPast?(anyBehind?'#fef2f2':'#f0fdf4'):'#f8fafc';
+    var bdr=isSel?'2px solid #2563eb':anyBehind?'1px solid #fecaca':'1px solid '+(isCurrent?'#bfdbfe':'#eee');
+    return h('div',{onClick:function(){setSelWeek(isSel?null:w);},
+      style:{background:bg,border:bdr,borderRadius:10,padding:'10px 6px',textAlign:'center',cursor:'pointer',transition:'all .15s',
+        boxShadow:isSel?'0 2px 12px rgba(37,99,235,.12)':'none',position:'relative'}},
+      isCurrent&&h('div',{style:{position:'absolute',top:-4,left:'50%',transform:'translateX(-50%)',fontSize:7,fontWeight:800,color:'#fff',background:'#2563eb',padding:'1px 6px',borderRadius:4,textTransform:'uppercase'}},'Now'),
+      h('div',{style:{fontSize:12,fontWeight:800,color:isCurrent?'#2563eb':anyBehind?'#dc2626':isPast?'#16a34a':'#555'}},'WK '+w),
+      h('div',{style:{fontSize:8,color:'#999',marginTop:2,marginBottom:4}},weekLabel(w).split(' – ')[0]),
+      /* Deliverable dots */
+      wi.deliverables.length>0&&h('div',{style:{display:'flex',justifyContent:'center',gap:3,marginBottom:2}},
+        wi.deliverables.map(function(d){var so=soFind(getStatus(d.id));
+          return h('div',{key:d.id,title:getEdited(d).l,style:{width:8,height:8,borderRadius:4,background:so.c}});})),
+      /* Meeting count */
+      wi.meetings.length>0&&h('div',{style:{fontSize:7,color:'#64748b',marginTop:2}},'📅 '+wi.meetings.length),
+      wi.deliverables.length>0&&h('div',{style:{fontSize:7,color:'#888',marginTop:2}},wi.deliverables.length+' due'),
+      ms.length>0&&h('div',{style:{fontSize:7,fontWeight:700,color:ms[0].color,marginTop:3,lineHeight:1.2}},ms[0].l)
+    );
+  }
+
+  return h('div',null,
+    h('div',{style:{marginBottom:12}},
+      h('h1',{style:{fontSize:20,fontWeight:700,letterSpacing:'-.02em',marginBottom:4}},'POI Engagement Workplan'),
+      h('p',{style:{fontSize:12,color:'#888'}},'8-week engagement · May 12 – July 10, 2026 · '+totalDel+' deliverables · '+meetings.length+' recurring meetings')
+    ),
+
+    /* ═══ KPI ROW — includes Behind Schedule as inline card ═══ */
+    h('div',{style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:14}},
+      [{l:'Complete',v:completeDel,c:'#16a34a',icon:'✓'},{l:'In Progress',v:inProgressDel,c:'#f59e0b',icon:'◐'},{l:'Not Started',v:notStartedDel,c:'#94a3b8',icon:'○'},{l:'Blocked',v:blockedDel,c:blockedDel?'#dc2626':'#ccc',icon:'✕'}].map(function(k){
+        return h('div',{key:k.l,style:{background:'#fff',borderRadius:10,border:'1px solid #eee',padding:'12px 14px',display:'flex',alignItems:'center',gap:10}},
+          h('div',{style:{width:28,height:28,borderRadius:8,background:k.c+'18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:k.c,fontWeight:700}},k.icon),
+          h('div',null,
+            h('div',{style:{fontSize:20,fontWeight:800,color:k.c}},k.v),
+            h('div',{style:{fontSize:9,fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'.04em'}},k.l)));
+      }),
+      /* Behind Schedule card */
+      h('div',{onClick:function(){setBehindExpanded(!behindExpanded);},
+        style:{background:overdue.length?'#fef2f2':'#fff',borderRadius:10,border:'1px solid '+(overdue.length?'#fecaca':'#eee'),padding:'12px 14px',display:'flex',alignItems:'center',gap:10,cursor:overdue.length?'pointer':'default'}},
+        h('div',{style:{width:28,height:28,borderRadius:8,background:overdue.length?'#dc262618':'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:overdue.length?'#dc2626':'#ccc',fontWeight:700}},'⚠'),
+        h('div',null,
+          h('div',{style:{fontSize:20,fontWeight:800,color:overdue.length?'#dc2626':'#ccc'}},overdue.length),
+          h('div',{style:{fontSize:9,fontWeight:600,color:overdue.length?'#dc2626':'#888',textTransform:'uppercase',letterSpacing:'.04em'}},'Behind')))
+    ),
+
+    /* Behind Schedule expanded panel */
+    behindExpanded&&overdue.length>0&&h('div',{style:{background:'#fff',borderRadius:12,border:'1px solid #fecaca',padding:'16px',marginBottom:14},className:'fade'},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
+        h('div',{style:{fontSize:13,fontWeight:700,color:'#dc2626'}},overdue.length+' deliverable'+(overdue.length>1?'s':'')+' past due — '+pctTime+'% of time elapsed, '+Math.round(completeDel/totalDel*100)+'% complete'),
+        h('button',{onClick:function(){setBehindExpanded(false);},style:{fontSize:10,color:'#888',background:'none',border:'1px solid #e5e5e5',borderRadius:6,padding:'3px 8px',cursor:'pointer'}},'Close')),
+      overdue.map(function(d){return h(DelCard,{key:d.id,d:d});})),
+
+    /* ═══ TRACK PROGRESS ═══ */
+    h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}},
+      Object.keys(ENG_TRACKS).map(function(tk){return h(TrackBar,{key:tk,tk:tk});})),
+
+    /* ═══ MILESTONES ═══ */
+    h('div',{style:{background:'#fff',borderRadius:12,border:'1px solid #eee',padding:'16px',marginBottom:16}},
+      h('div',{style:{fontSize:13,fontWeight:700,color:'#222',marginBottom:10}},'Milestones'),
+      ENG_MILESTONES.map(function(m){return h(MilestoneCard,{key:m.id,m:m});})),
+
+    /* ═══ WEEK CALENDAR ═══ */
+    h('div',{style:{background:'#fff',borderRadius:12,border:'1px solid #eee',padding:'16px',marginBottom:16}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}},
+        h('div',{style:{fontSize:13,fontWeight:700,color:'#222'}},'Weekly Calendar'),
+        h('div',{style:{display:'flex',gap:8,fontSize:9,color:'#888'}},
+          h('span',null,'● Deliverables'),h('span',null,'📅 Meetings'))),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:6}},
+        [1,2,3,4,5,6,7,8].map(function(w){return h(WeekCard,{key:w,w:w});})),
+      /* Selected week detail */
+      selWeek&&h('div',{style:{marginTop:14,padding:'14px 0 0',borderTop:'1px solid #f0f0f0'},className:'fade'},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
+          h('div',null,
+            h('span',{style:{fontSize:14,fontWeight:700,color:'#222'}},'Week '+selWeek),
+            h('span',{style:{fontSize:11,color:'#888',marginLeft:8}},weekLabel(selWeek))),
+          h('button',{onClick:function(){setSelWeek(null);},style:{fontSize:10,color:'#888',background:'none',border:'1px solid #e5e5e5',borderRadius:6,padding:'3px 8px',cursor:'pointer'}},'Close')),
+        (function(){
+          var wi=itemsForWeek(selWeek);
+          var wMs=ENG_MILESTONES.filter(function(m){return m.week===selWeek;});
+          if(!wi.all.length)return h('div',{style:{fontSize:11,color:'#999',padding:'8px 0'}},'No items this week.');
+          return h('div',null,
+            wMs.length>0&&h('div',{style:{fontSize:10,fontWeight:700,color:wMs[0].color,marginBottom:8,display:'flex',alignItems:'center',gap:6}},
+              h('span',{style:{fontSize:14}},'◆'),'Milestone: '+wMs[0].l),
+            wi.deliverables.length>0&&h('div',null,
+              h('div',{style:{fontSize:10,fontWeight:600,color:'#555',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}},'Deliverables Due'),
+              wi.deliverables.map(function(d){return h(DelCard,{key:d.id,d:d});})),
+            wi.meetings.length>0&&h('div',{style:{marginTop:wi.deliverables.length?10:0}},
+              h('div',{style:{fontSize:10,fontWeight:600,color:'#64748b',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}},'Recurring Meetings'),
+              wi.meetings.map(function(d){return h(DelCard,{key:d.id,d:d});})));
+        })())),
+
+    /* ═══ ALL DELIVERABLES ═══ */
+    h('div',{style:{background:'#fff',borderRadius:12,border:'1px solid #eee',padding:'16px',marginBottom:16}},
+      h('div',{style:{fontSize:13,fontWeight:700,color:'#222',marginBottom:10}},'All Deliverables'),
+      deliverables.map(function(d){return h(DelCard,{key:d.id,d:d});})),
+
+    /* ═══ RECURRING MEETINGS ═══ */
+    h('div',{style:{background:'#fff',borderRadius:12,border:'1px solid #eee',padding:'16px'}},
+      h('div',{style:{fontSize:13,fontWeight:700,color:'#222',marginBottom:10}},'Recurring Meetings'),
+      meetings.map(function(d){return h(DelCard,{key:d.id,d:d});}))
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   DISCOVERY LOG
+   ═══════════════════════════════════════════════ */
+function DiscoveryPage(props){
+  var discoveryLog=props.discoveryLog,setDiscoveryLog=props.setDiscoveryLog,snap=props.snap,setPage=props.setPage;
+  var _showForm=useState(false),showForm=_showForm[0],setShowForm=_showForm[1];
+  var _editEntry=useState(null),editEntry=_editEntry[0],setEditEntry=_editEntry[1];
+
+  var meetingTypes=[
+    {id:'working',l:'Working Session',c:'#2563eb',bg:'#eff6ff'},
+    {id:'partnership',l:'Partnership Check-In',c:'#7c3aed',bg:'#faf5ff'},
+    {id:'client',l:'Client Conversation',c:'#059669',bg:'#f0fdf4'},
+    {id:'pitch',l:'Pitch Sit-In',c:'#ea580c',bg:'#fff7ed'},
+    {id:'internal',l:'Internal Session',c:'#64748b',bg:'#f8fafc'}
+  ];
+  var tagTypes=[
+    {id:'buyer-insight',l:'Buyer Insight',c:'#2563eb',feeds:['criteria','target']},
+    {id:'competitive-intel',l:'Competitive Intel',c:'#dc2626',feeds:['competition','valuemap']},
+    {id:'pricing-data',l:'Pricing Data',c:'#059669',feeds:['budget','forecasting']},
+    {id:'customer-pain',l:'Customer Pain Point',c:'#ea580c',feeds:['criteria','selfassess']},
+    {id:'market-signal',l:'Market Signal',c:'#7c3aed',feeds:['frameworks']},
+    {id:'process-insight',l:'Process Insight',c:'#0891b2',feeds:['plan']},
+    {id:'partnership-item',l:'Partnership Item',c:'#64748b',feeds:[]},
+    {id:'action-item',l:'Action Item',c:'#f59e0b',feeds:[]}
+  ];
+
+  function addEntry(entry){snap();setDiscoveryLog(function(p){return [entry].concat(p);});}
+  function updateEntry(id,changes){snap();setDiscoveryLog(function(p){return p.map(function(e){return e.id===id?Object.assign({},e,changes):e;});});}
+  function deleteEntry(id){snap();setDiscoveryLog(function(p){return p.filter(function(e){return e.id!==id;});});setEditEntry(null);}
+
+  function EntryForm(fp){
+    var existing=fp.entry;
+    var _d=useState(existing?existing.date:new Date().toISOString().slice(0,10)),date=_d[0],setDate=_d[1];
+    var _t=useState(existing?existing.type:'working'),type=_t[0],setType=_t[1];
+    var _a=useState(existing?existing.attendees:''),attendees=_a[0],setAttendees=_a[1];
+    var _s=useState(existing?existing.summary:''),summary=_s[0],setSummary=_s[1];
+    var _n=useState(existing?(existing.notes||[]):[]),notes=_n[0],setNotes=_n[1];
+
+    function addNote(){setNotes(function(p){return p.concat([{id:uid(),text:'',tags:[]}]);});}
+    function updNote(nid,ch){setNotes(function(p){return p.map(function(n){return n.id===nid?Object.assign({},n,ch):n;});});}
+    function delNote(nid){setNotes(function(p){return p.filter(function(n){return n.id!==nid;});});}
+    function toggleTag(nid,tagId){setNotes(function(p){return p.map(function(n){
+      if(n.id!==nid)return n;
+      var has=n.tags.indexOf(tagId)>=0;
+      return Object.assign({},n,{tags:has?n.tags.filter(function(t){return t!==tagId;}):n.tags.concat([tagId])});
+    });});}
+
+    function handleSave(){
+      if(!summary.trim())return;
+      var entry={id:existing?existing.id:uid(),date:date,type:type,attendees:attendees,summary:summary,notes:notes};
+      if(existing){updateEntry(existing.id,entry);}else{addEntry(entry);}
+      fp.onClose();
+    }
+
+    var mt=meetingTypes.find(function(m){return m.id===type;})||meetingTypes[0];
+    return h('div',{style:{background:'#fff',borderRadius:12,border:'1px solid #e5e5e5',padding:20,marginBottom:16}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}},
+        h('div',{style:{fontSize:14,fontWeight:700,color:'#111'}},existing?'Edit Entry':'New Entry'),
+        h('button',{onClick:fp.onClose,style:{fontSize:16,color:'#999',border:'none',background:'none',cursor:'pointer'}},'×')),
+      /* Row 1: Date + Type */
+      h('div',{style:{display:'flex',gap:10,marginBottom:10}},
+        h('input',{type:'date',value:date,onChange:function(e){setDate(e.target.value);},
+          style:{flex:1,padding:'6px 10px',border:'1px solid #ddd',borderRadius:6,fontSize:12}}),
+        h('select',{value:type,onChange:function(e){setType(e.target.value);},
+          style:{flex:1,padding:'6px 10px',border:'1px solid #ddd',borderRadius:6,fontSize:12,color:mt.c,fontWeight:600}},
+          meetingTypes.map(function(m){return h('option',{key:m.id,value:m.id},m.l);}))),
+      /* Attendees */
+      h('input',{placeholder:'Attendees (comma-separated)',value:attendees,onChange:function(e){setAttendees(e.target.value);},
+        style:{width:'100%',padding:'6px 10px',border:'1px solid #ddd',borderRadius:6,fontSize:12,marginBottom:10}}),
+      /* Summary */
+      h('textarea',{placeholder:'Meeting summary — key discussion points and outcomes...',value:summary,onChange:function(e){setSummary(e.target.value);},
+        style:{width:'100%',padding:'8px 10px',border:'1px solid #ddd',borderRadius:6,fontSize:12,minHeight:60,resize:'vertical',marginBottom:12,lineHeight:1.5}}),
+      /* Tagged Notes */
+      h('div',{style:{marginBottom:10}},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}},
+          h('div',{style:{fontSize:11,fontWeight:700,color:'#555'}},'Tagged Insights'),
+          h('button',{onClick:addNote,style:{fontSize:10,fontWeight:600,color:'#2563eb',border:'1px solid #bfdbfe',borderRadius:6,padding:'3px 8px',background:'#eff6ff',cursor:'pointer'}},'+  Add Insight')),
+        notes.map(function(n){
+          return h('div',{key:n.id,style:{background:'#f8fafc',borderRadius:8,padding:'8px 10px',marginBottom:6,border:'1px solid #e5e7eb'}},
+            h('textarea',{placeholder:'Insight or finding...',value:n.text,onChange:function(e){updNote(n.id,{text:e.target.value});},
+              style:{width:'100%',padding:'4px 6px',border:'1px solid #e5e5e5',borderRadius:4,fontSize:11,minHeight:32,resize:'vertical',marginBottom:6,lineHeight:1.4}}),
+            h('div',{style:{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}},
+              tagTypes.map(function(tg){
+                var active=n.tags.indexOf(tg.id)>=0;
+                return h('button',{key:tg.id,onClick:function(){toggleTag(n.id,tg.id);},
+                  style:{fontSize:8,fontWeight:600,color:active?'#fff':tg.c,background:active?tg.c:tg.c+'12',
+                    border:'1px solid '+(active?tg.c:tg.c+'33'),borderRadius:4,padding:'2px 6px',cursor:'pointer'}},tg.l);
+              }),
+              h('div',{style:{flex:1}}),
+              h('button',{onClick:function(){delNote(n.id);},style:{fontSize:9,color:'#dc2626',border:'none',background:'none',cursor:'pointer'}},'Remove')));
+        })
+      ),
+      /* Save / Cancel */
+      h('div',{style:{display:'flex',justifyContent:'flex-end',gap:8}},
+        h('button',{onClick:fp.onClose,style:{padding:'6px 14px',borderRadius:6,border:'1px solid #e5e5e5',background:'#fff',fontSize:11,fontWeight:500,color:'#555',cursor:'pointer'}},'Cancel'),
+        h('button',{onClick:handleSave,style:{padding:'6px 14px',borderRadius:6,border:'none',background:'#111',fontSize:11,fontWeight:600,color:'#fff',cursor:'pointer'}},'Save Entry'))
+    );
+  }
+
+  /* Aggregate all tags across all entries */
+  var allInsights=[];
+  discoveryLog.forEach(function(entry){
+    (entry.notes||[]).forEach(function(n){
+      if(n.text&&n.tags&&n.tags.length){
+        n.tags.forEach(function(tag){allInsights.push({text:n.text,tag:tag,date:entry.date,type:entry.type,entryId:entry.id});});
+      }
+    });
+  });
+
+  var _viewTab=useState('log'),viewTab=_viewTab[0],setViewTab=_viewTab[1];
+  var viewTabs=[{id:'log',l:'Meeting Log'},{id:'insights',l:'Insights by Tag'},{id:'feed',l:'Strategy Feed'}];
+
+  return h('div',null,
+    h('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:16}},
+      h('div',null,
+        h('h1',{style:{fontSize:20,fontWeight:700,letterSpacing:'-.02em',marginBottom:4}},'Discovery Log'),
+        h('p',{style:{fontSize:12,color:'#888'}},'Capture meetings, conversations, and insights. Tag findings to feed them into the strategy.')),
+      !showForm&&!editEntry&&h('button',{onClick:function(){setShowForm(true);},
+        style:{padding:'8px 16px',borderRadius:8,border:'none',background:'#111',fontSize:12,fontWeight:600,color:'#fff',cursor:'pointer',flexShrink:0}},'+  New Entry')
+    ),
+    /* Quick stats */
+    h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:16}},
+      h('div',{style:{background:'#fff',borderRadius:10,border:'1px solid #eee',padding:'12px 14px',textAlign:'center'}},
+        h('div',{style:{fontSize:18,fontWeight:800,color:'#111'}},discoveryLog.length),
+        h('div',{style:{fontSize:9,fontWeight:600,color:'#999',marginTop:2,textTransform:'uppercase',letterSpacing:'.04em'}},'Meetings Logged')),
+      h('div',{style:{background:'#fff',borderRadius:10,border:'1px solid #eee',padding:'12px 14px',textAlign:'center'}},
+        h('div',{style:{fontSize:18,fontWeight:800,color:'#2563eb'}},allInsights.length),
+        h('div',{style:{fontSize:9,fontWeight:600,color:'#999',marginTop:2,textTransform:'uppercase',letterSpacing:'.04em'}},'Tagged Insights')),
+      h('div',{style:{background:'#fff',borderRadius:10,border:'1px solid #eee',padding:'12px 14px',textAlign:'center'}},
+        h('div',{style:{fontSize:18,fontWeight:800,color:'#059669'}},discoveryLog.filter(function(e){return e.type==='client';}).length),
+        h('div',{style:{fontSize:9,fontWeight:600,color:'#999',marginTop:2,textTransform:'uppercase',letterSpacing:'.04em'}},'Client Conversations')),
+      h('div',{style:{background:'#fff',borderRadius:10,border:'1px solid #eee',padding:'12px 14px',textAlign:'center'}},
+        h('div',{style:{fontSize:18,fontWeight:800,color:'#ea580c'}},discoveryLog.filter(function(e){return e.type==='pitch';}).length),
+        h('div',{style:{fontSize:9,fontWeight:600,color:'#999',marginTop:2,textTransform:'uppercase',letterSpacing:'.04em'}},'Pitch Sit-Ins'))
+    ),
+
+    /* New/Edit Form */
+    showForm&&h(EntryForm,{entry:null,onClose:function(){setShowForm(false);}}),
+    editEntry&&h(EntryForm,{entry:editEntry,onClose:function(){setEditEntry(null);}}),
+
+    /* View tabs */
+    !showForm&&!editEntry&&h('div',null,
+      h('div',{style:{display:'flex',gap:0,marginBottom:16,borderBottom:'1px solid #e5e5e5'}},
+        viewTabs.map(function(t){return h('button',{key:t.id,onClick:function(){setViewTab(t.id);},
+          style:{padding:'7px 12px 9px',border:'none',background:'none',marginBottom:-1,
+            borderBottom:viewTab===t.id?'2px solid #111':'2px solid transparent',
+            fontSize:12,fontWeight:600,color:viewTab===t.id?'#111':'#bbb'}},t.l);})
+      ),
+
+      /* ── MEETING LOG ── */
+      viewTab==='log'&&h('div',{className:'fade'},
+        discoveryLog.length===0&&h('div',{style:{textAlign:'center',padding:'40px 0',color:'#94a3b8'}},
+          h('div',{style:{fontSize:32,marginBottom:8}},'📋'),
+          h('div',{style:{fontSize:13,fontWeight:600,marginBottom:4}},'No meetings logged yet'),
+          h('div',{style:{fontSize:11}},'Click "+ New Entry" to capture your first meeting.')),
+        discoveryLog.map(function(entry){
+          var mt=meetingTypes.find(function(m){return m.id===entry.type;})||meetingTypes[0];
+          var noteCount=(entry.notes||[]).length;
+          var tagCount=(entry.notes||[]).reduce(function(acc,n){return acc+(n.tags||[]).length;},0);
+          return h('div',{key:entry.id,style:{background:'#fff',borderRadius:10,border:'1px solid #eee',padding:'12px 16px',marginBottom:6}},
+            h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:6}},
+              h('div',{style:{width:8,height:8,borderRadius:4,background:mt.c,flexShrink:0}}),
+              h('div',{style:{fontSize:11,fontWeight:700,color:'#555'}},entry.date),
+              h('span',{style:{fontSize:9,fontWeight:600,color:mt.c,background:mt.bg,padding:'1px 6px',borderRadius:4}},mt.l),
+              entry.attendees&&h('span',{style:{fontSize:9,color:'#888'}},entry.attendees),
+              h('div',{style:{flex:1}}),
+              h('button',{onClick:function(){setEditEntry(entry);},style:{fontSize:9,fontWeight:600,color:'#2563eb',border:'1px solid #bfdbfe',borderRadius:4,padding:'2px 6px',background:'#eff6ff',cursor:'pointer'}},'Edit'),
+              h('button',{onClick:function(){deleteEntry(entry.id);},style:{fontSize:9,fontWeight:600,color:'#dc2626',border:'1px solid #fecaca',borderRadius:4,padding:'2px 6px',background:'#fff',cursor:'pointer',marginLeft:4}},'×')),
+            h('div',{style:{fontSize:11,color:'#444',lineHeight:1.5,marginBottom:6}},entry.summary),
+            (entry.notes||[]).length>0&&h('div',{style:{display:'flex',gap:4,flexWrap:'wrap'}},
+              (entry.notes||[]).map(function(n){
+                return (n.tags||[]).map(function(tagId){
+                  var tg=tagTypes.find(function(t){return t.id===tagId;});
+                  return tg?h('span',{key:n.id+'-'+tagId,style:{fontSize:8,fontWeight:600,color:tg.c,background:tg.c+'12',padding:'1px 5px',borderRadius:3}},tg.l):null;
+                });
+              }),
+              noteCount>0&&h('span',{style:{fontSize:9,color:'#888'}},noteCount+' insight'+(noteCount!==1?'s':''))));
+        })
+      ),
+
+      /* ── INSIGHTS BY TAG ── */
+      viewTab==='insights'&&h('div',{className:'fade'},
+        tagTypes.map(function(tg){
+          var matching=allInsights.filter(function(ins){return ins.tag===tg.id;});
+          if(!matching.length)return null;
+          return h('div',{key:tg.id,style:{marginBottom:14}},
+            h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6}},
+              h('div',{style:{width:8,height:8,borderRadius:4,background:tg.c}}),
+              h('div',{style:{fontSize:12,fontWeight:700,color:'#333'}},tg.l),
+              h('span',{style:{fontSize:10,color:'#888'}},matching.length+' insight'+(matching.length!==1?'s':'')),
+              tg.feeds.length>0&&h('span',{style:{fontSize:8,color:'#2563eb'}},
+                '→ '+tg.feeds.map(function(f){return FEED_LABELS[f]||f;}).join(', '))),
+            matching.map(function(ins,i){
+              var mt=meetingTypes.find(function(m){return m.id===ins.type;});
+              return h('div',{key:i,style:{background:'#fff',borderRadius:8,border:'1px solid #eee',padding:'8px 12px',marginBottom:3,display:'flex',gap:10}},
+                h('div',{style:{fontSize:11,color:'#444',flex:1,lineHeight:1.4}},ins.text),
+                h('span',{style:{fontSize:9,color:'#888',flexShrink:0}},ins.date));
+            }));
+        }),
+        allInsights.length===0&&h('div',{style:{textAlign:'center',padding:'40px 0',color:'#94a3b8'}},
+          h('div',{style:{fontSize:13,fontWeight:600}},'No tagged insights yet'),
+          h('div',{style:{fontSize:11,marginTop:4}},'Add tags to meeting notes to see them organized here.'))
+      ),
+
+      /* ── STRATEGY FEED ── */
+      viewTab==='feed'&&h('div',{className:'fade'},
+        h('div',{style:{fontSize:10,fontWeight:600,color:'#999',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:10}},'Discovery Insights Mapped to Strategy Sections'),
+        Object.keys(FEED_LABELS).map(function(pg){
+          var matching=allInsights.filter(function(ins){
+            var tg=tagTypes.find(function(t){return t.id===ins.tag;});
+            return tg&&tg.feeds.indexOf(pg)>=0;
+          });
+          if(!matching.length)return null;
+          return h('div',{key:pg,style:{background:'#fff',borderRadius:10,border:'1px solid #eee',padding:'14px 16px',marginBottom:8}},
+            h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
+              h('div',{onClick:function(){setPage(pg);},style:{fontSize:13,fontWeight:700,color:'#2563eb',cursor:'pointer'}},FEED_LABELS[pg]+' →'),
+              h('span',{style:{fontSize:10,color:'#888'}},matching.length+' insight'+(matching.length!==1?'s':''))),
+            matching.map(function(ins,i){
+              var tg=tagTypes.find(function(t){return t.id===ins.tag;});
+              return h('div',{key:i,style:{display:'flex',gap:8,padding:'4px 0',borderBottom:'1px solid #f5f5f5'}},
+                h('div',{style:{width:6,height:6,borderRadius:3,background:tg?tg.c:'#ccc',marginTop:5,flexShrink:0}}),
+                h('div',{style:{fontSize:11,color:'#444',flex:1,lineHeight:1.4}},ins.text),
+                h('span',{style:{fontSize:9,color:'#888',flexShrink:0}},ins.date));
+            }));
+        }),
+        allInsights.length===0&&h('div',{style:{textAlign:'center',padding:'40px 0',color:'#94a3b8'}},
+          h('div',{style:{fontSize:13,fontWeight:600}},'No insights to feed yet'),
+          h('div',{style:{fontSize:11,marginTop:4}},'Tag notes in meetings and they\'ll automatically map to strategy sections.'))
+      )
+    )
+  );
+}
+
+/* ═══════════════════════════════════════════════
    HOME PAGE
    ═══════════════════════════════════════════════ */
 function HomePage(props){
   var setPage=props.setPage;
+  var engDeliverables=props.engDeliverables||{};
+  var discoveryLog=props.discoveryLog||[];
+  var completeDel=ENG_DELIVERABLES.filter(function(d){return engDeliverables[d.id]==='complete';}).length;
+  var totalDel=ENG_DELIVERABLES.length;
+  var totalInsights=0;
+  discoveryLog.forEach(function(e){(e.notes||[]).forEach(function(n){totalInsights+=(n.tags||[]).length;});});
+
   var sections=[
+    {id:'engagement',l:'Workplan',desc:'Track the POI engagement — weekly calendar, deliverable status, behind-schedule alerts, and how outputs feed the strategy. '+completeDel+'/'+totalDel+' deliverables complete.',accent:'#2563eb'},
+    {id:'discovery',l:'Discovery',desc:'Capture meetings, client conversations, and pitch sit-ins. Tag insights so they flow into the right strategy sections. '+discoveryLog.length+' meetings · '+totalInsights+' insights logged.',accent:'#0891b2'},
     {id:'frameworks',l:'Frameworks',desc:'PESTEL, Porter\'s Five Forces, SWOT, and Hedgehog — the strategic foundation. Pre-built with real market intelligence for Ontario\'s commercial workspace sector.'},
     {id:'target',l:'Target Market',desc:'Segment sizing, buyer profiles, and revenue scenarios across mid-market, enterprise, and landlord segments using Canadian business data.'},
     {id:'criteria',l:'Criteria',desc:'Ten weighted buying criteria that shift dynamically by segment — what matters most to each buyer type and how much weight it carries.'},
@@ -748,15 +1354,38 @@ function HomePage(props){
       )
     ),
 
+    /* ── Active Engagement ── */
+    h('div',{style:{marginBottom:16}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:14}},
+        h('div',{style:{fontSize:11,fontWeight:700,color:'#111',textTransform:'uppercase',letterSpacing:1.5}},'Active Project'),
+        h('div',{style:{flex:1,height:1,background:'#e5e7eb'}})
+      )
+    ),
+    h('div',{style:{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10,marginBottom:28}},
+      sections.filter(function(s){return s.accent;}).map(function(s){
+        return h('div',{key:s.id,onClick:function(){setPage(s.id);},
+          style:{background:'#fff',border:'1px solid '+s.accent+'33',borderRadius:10,padding:'18px 18px 16px',cursor:'pointer',
+            transition:'all .15s',position:'relative',borderLeft:'3px solid '+s.accent}},
+          h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
+            h('div',{style:{width:22,height:22,borderRadius:6,background:s.accent+'15',display:'flex',alignItems:'center',justifyContent:'center',
+              fontSize:10,fontWeight:700,color:s.accent}},s.id==='engagement'?'W':'D'),
+            h('div',{style:{fontSize:13,fontWeight:700,color:'#111'}},s.l)
+          ),
+          h('div',{style:{fontSize:11.5,color:'#64748b',lineHeight:1.6}},s.desc),
+          h('div',{style:{marginTop:10,fontSize:10,fontWeight:600,color:s.accent}},'Open →')
+        );
+      })
+    ),
+
     /* ── What's Inside: Section Grid ── */
     h('div',{style:{marginBottom:16}},
       h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:14}},
-        h('div',{style:{fontSize:11,fontWeight:700,color:'#111',textTransform:'uppercase',letterSpacing:1.5}},"What's Inside"),
+        h('div',{style:{fontSize:11,fontWeight:700,color:'#111',textTransform:'uppercase',letterSpacing:1.5}},'Strategy Sections'),
         h('div',{style:{flex:1,height:1,background:'#e5e7eb'}})
       )
     ),
     h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}},
-      sections.map(function(s,i){
+      sections.filter(function(s){return !s.accent;}).map(function(s,i){
         return h('div',{key:s.id,onClick:function(){setPage(s.id);},
           style:{background:'#fff',border:'1px solid #e5e7eb',borderRadius:10,padding:'18px 18px 16px',cursor:'pointer',
             transition:'all .15s',position:'relative'}},
